@@ -18,7 +18,12 @@ import java.util.UUID;
     uniqueConstraints = @UniqueConstraint(
         name = "uk_momentum_symbol_date",
         columnNames = {"symbol", "score_date"}
-    )
+    ),
+    indexes = {
+        @Index(name = "idx_momentum_score_date",       columnList = "score_date"),
+        @Index(name = "idx_momentum_date_score",       columnList = "score_date, score DESC"),
+        @Index(name = "idx_momentum_symbol_scoredate", columnList = "symbol, score_date ASC")
+    }
 )
 @Getter @Setter @NoArgsConstructor
 public class MomentumScore {

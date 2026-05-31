@@ -1,5 +1,6 @@
 package com.stockapp.analysis.entity;
 
+import com.stockapp.common.enums.AnalysisOutcome;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -13,7 +14,14 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
-@Table(name = "analyses")
+@Table(
+    name = "analyses",
+    indexes = {
+        @Index(name = "idx_analyses_user_outcome",  columnList = "user_id, outcome"),
+        @Index(name = "idx_analyses_user_date",     columnList = "user_id, analysis_date DESC"),
+        @Index(name = "idx_analyses_user_ticker",   columnList = "user_id, ticker")
+    }
+)
 @Getter @Setter @NoArgsConstructor
 public class Analysis {
 
@@ -40,8 +48,9 @@ public class Analysis {
     @Column(name = "expected_direction", length = 10)
     private String expectedDirection;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "outcome", nullable = false, length = 20)
-    private String outcome = "PENDING";
+    private AnalysisOutcome outcome = AnalysisOutcome.PENDING;
 
     @Column(name = "analysis_date", nullable = false)
     private LocalDate analysisDate;

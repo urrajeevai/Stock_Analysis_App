@@ -11,7 +11,14 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "alerts")
+@Table(
+    name = "alerts",
+    indexes = {
+        @Index(name = "idx_alerts_user_id",      columnList = "user_id, triggered_at DESC"),
+        @Index(name = "idx_alerts_trade_id",     columnList = "trade_id"),
+        @Index(name = "idx_alerts_acknowledged", columnList = "user_id, acknowledged")
+    }
+)
 @Getter @Setter @NoArgsConstructor
 public class Alert {
 

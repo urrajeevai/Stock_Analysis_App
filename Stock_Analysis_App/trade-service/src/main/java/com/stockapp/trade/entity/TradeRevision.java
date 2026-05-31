@@ -10,7 +10,12 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "trade_revisions")
+@Table(
+    name = "trade_revisions",
+    indexes = {
+        @Index(name = "idx_trade_revisions_trade_id", columnList = "trade_id, revised_at DESC")
+    }
+)
 @Getter @Setter @NoArgsConstructor
 public class TradeRevision {
 

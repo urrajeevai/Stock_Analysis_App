@@ -1,5 +1,8 @@
 package com.stockapp.trade.entity;
 
+import com.stockapp.common.enums.Direction;
+import com.stockapp.common.enums.TradeOutcome;
+import com.stockapp.common.enums.TradeStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -11,7 +14,15 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "trades")
+@Table(
+    name = "trades",
+    indexes = {
+        @Index(name = "idx_trades_user_status",    columnList = "user_id, status"),
+        @Index(name = "idx_trades_user_createdat", columnList = "user_id, created_at DESC"),
+        @Index(name = "idx_trades_analysis_id",    columnList = "analysis_id"),
+        @Index(name = "idx_trades_closed_at",      columnList = "user_id, closed_at DESC")
+    }
+)
 @Getter @Setter @NoArgsConstructor
 public class Trade {
 
@@ -29,8 +40,9 @@ public class Trade {
     @Column(name = "ticker", nullable = false, length = 30)
     private String ticker;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "direction", nullable = false, length = 10)
-    private String direction = "LONG";
+    private Direction direction = Direction.LONG;
 
     @Column(name = "entry_price", nullable = false, precision = 15, scale = 4)
     private BigDecimal entryPrice;
@@ -44,11 +56,13 @@ public class Trade {
     @Column(name = "rr_ratio", precision = 8, scale = 4)
     private BigDecimal rrRatio;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    private String status = "OPEN";
+    private TradeStatus status = TradeStatus.OPEN;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "outcome", length = 20)
-    private String outcome;
+    private TradeOutcome outcome;
 
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
