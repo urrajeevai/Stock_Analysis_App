@@ -9,12 +9,18 @@ export function useTrades(params = {}) {
     page: 0, totalPages: 0, totalElements: 0, pageSize: 20,
   })
 
-  const paramsKey = JSON.stringify(params)
+  const { status, ticker, page = 0, size = 20, sort, sortDir } = params
 
   const fetch = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await tradesService.listTrades(params)
+      const apiParams = { page, size }
+      if (status)  apiParams.status  = status
+      if (ticker)  apiParams.ticker  = ticker
+      if (sort)    apiParams.sort    = sort
+      if (sortDir) apiParams.sortDir = sortDir
+
+      const res = await tradesService.listTrades(apiParams)
       const d = res.data
       if (Array.isArray(d)) {
         setTrades(d)
@@ -35,7 +41,7 @@ export function useTrades(params = {}) {
     } finally {
       setLoading(false)
     }
-  }, [paramsKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [status, ticker, page, size, sort, sortDir])
 
   useEffect(() => { fetch() }, [fetch])
 

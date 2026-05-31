@@ -1,4 +1,3 @@
-import { useState, useMemo } from 'react'
 import {
   ChevronUpIcon,
   ChevronDownIcon,
@@ -59,14 +58,6 @@ function SkeletonRow() {
   )
 }
 
-// Push nulls to the bottom regardless of sort direction
-function nullLast(value, dir) {
-  if (value == null) return dir === 'asc' ? Infinity : -Infinity
-  return value
-}
-
-const OUTCOME_ORDER = { PENDING: 0, CORRECT: 1, FAILED: 2 }
-
 export default function AnalysisTable({
   analyses,
   loading,
@@ -77,42 +68,13 @@ export default function AnalysisTable({
   onFilterChange,
   pagination,
   onPageChange,
+  sortKey = 'analysisDate',
+  sortDir = 'desc',
+  onSort,
+  onResetSort,
 }) {
   const showFilters = !!onFilterChange
-
-  const [sortKey, setSortKey] = useState('date')
-  const [sortDir, setSortDir] = useState('desc')
-
-  const handleSort = (key) => {
-    if (sortKey === key) {
-      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortKey(key)
-      setSortDir('desc')
-    }
-  }
-
-  const displayAnalyses = useMemo(() => {
-    if (!sortKey) return analyses
-    return [...analyses].sort((a, b) => {
-      if (sortKey === 'date') {
-        const av = new Date(a.analysisDate ?? a.createdAt).getTime()
-        const bv = new Date(b.analysisDate ?? b.createdAt).getTime()
-        return sortDir === 'asc' ? av - bv : bv - av
-      }
-      if (sortKey === 'outcome') {
-        const av = OUTCOME_ORDER[a.outcome ?? 'PENDING'] ?? 99
-        const bv = OUTCOME_ORDER[b.outcome ?? 'PENDING'] ?? 99
-        return sortDir === 'asc' ? av - bv : bv - av
-      }
-      if (sortKey === 'rr') {
-        const av = nullLast(a.rrRatio != null ? parseFloat(a.rrRatio) : null, sortDir)
-        const bv = nullLast(b.rrRatio != null ? parseFloat(b.rrRatio) : null, sortDir)
-        return sortDir === 'asc' ? av - bv : bv - av
-      }
-      return 0
-    })
-  }, [analyses, sortKey, sortDir])
+  const displayAnalyses = analyses
 
   return (
     <div className="card overflow-hidden">
@@ -144,10 +106,10 @@ export default function AnalysisTable({
                 <span className="font-semibold text-slate-600">{pagination.totalElements}</span> records
               </span>
             )}
-            {sortKey && (
+            {onResetSort && sortKey !== 'analysisDate' && (
               <button
                 type="button"
-                onClick={() => setSortKey(null)}
+                onClick={onResetSort}
                 className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
               >
                 Reset sort
@@ -172,10 +134,10 @@ export default function AnalysisTable({
               <th className="px-4 py-3 text-left label-xs">TF</th>
               <SortTh
                 label="R/R"
-                sortKey="rr"
+                sortKey="rrRatio"
                 currentSortKey={sortKey}
                 currentSortDir={sortDir}
-                onSort={handleSort}
+                onSort={onSort}
                 className="text-center"
               />
               <th className="px-4 py-3 text-center label-xs">Decision</th>
@@ -184,15 +146,15 @@ export default function AnalysisTable({
                 sortKey="outcome"
                 currentSortKey={sortKey}
                 currentSortDir={sortDir}
-                onSort={handleSort}
+                onSort={onSort}
                 className="text-left"
               />
               <SortTh
                 label="Date"
-                sortKey="date"
+                sortKey="analysisDate"
                 currentSortKey={sortKey}
                 currentSortDir={sortDir}
-                onSort={handleSort}
+                onSort={onSort}
                 className="text-left"
               />
             </tr>

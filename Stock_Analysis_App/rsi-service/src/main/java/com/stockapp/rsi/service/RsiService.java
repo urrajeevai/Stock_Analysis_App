@@ -8,6 +8,8 @@ import com.stockapp.rsi.repository.RsiScoreRepository;
 import com.stockapp.rsi.repository.RsiUploadRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -50,6 +52,7 @@ public class RsiService {
      * Upserts by (symbol + scoreDate). Each row runs in its own REQUIRES_NEW transaction.
      */
     @Transactional
+    @CacheEvict(value = com.stockapp.rsi.config.CacheConfig.RSI_TRENDING, allEntries = true)
     public RsiUploadResult uploadCsv(MultipartFile file, LocalDate scoreDate, UUID userId) {
         if (file == null || file.isEmpty()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "CSV file is empty");
@@ -224,11 +227,12 @@ public class RsiService {
 
     /**
      * Returns stocks whose RSI is >= minRsi on every selected date and strictly
-     * increasing day-over-day across those dates.
-     *
-     * dateFrom + dateTo takes precedence over lastNDays when both are supplied.
+     * increasing day-over-day. Uses a MySQL 8 LAG window-function query.
+     * Results are cached and evicted on every CSV upload.
      */
     @Transactional(readOnly = true)
+    @Cacheable(value = com.stockapp.rsi.config.CacheConfig.RSI_TRENDING,
+               key = "#lastNDays + '-' + #minRsi + '-' + #dateFrom + '-' + #dateTo")
     public List<TrendingRsiStockResponse> getTrendingStocks(
             int lastNDays, BigDecimal minRsi, LocalDate dateFrom, LocalDate dateTo) {
 
@@ -245,28 +249,14 @@ public class RsiService {
 
         if (datesAsc.size() < 2) return Collections.emptyList();
 
-        List<RsiScore> candidates =
-                rsiScoreRepository.findByScoreDateInAndRsiScoreGreaterThanEqual(datesAsc, minRsi);
+        List<RsiScore> rows = rsiScoreRepository.findTrendingByDatesAndMinRsi(
+                datesAsc, minRsi, datesAsc.size());
 
-        Map<String, List<RsiScore>> bySymbol = candidates.stream()
+        Map<String, List<RsiScore>> bySymbol = rows.stream()
                 .collect(Collectors.groupingBy(RsiScore::getSymbol));
 
-        int required = datesAsc.size();
-        return bySymbol.entrySet().stream()
-                .filter(entry -> {
-                    List<RsiScore> scores = entry.getValue().stream()
-                            .sorted(Comparator.comparing(RsiScore::getScoreDate)).toList();
-                    if (scores.size() < required) return false;
-                    Set<LocalDate> covered = scores.stream()
-                            .map(RsiScore::getScoreDate).collect(Collectors.toSet());
-                    if (!covered.containsAll(datesAsc)) return false;
-                    for (int i = 1; i < scores.size(); i++) {
-                        if (scores.get(i).getRsiScore().compareTo(scores.get(i - 1).getRsiScore()) <= 0)
-                            return false;
-                    }
-                    return true;
-                })
-                .map(entry -> buildTrendingResponse(entry.getValue(), datesAsc))
+        return bySymbol.values().stream()
+                .map(scores -> buildTrendingResponse(scores, datesAsc))
                 .sorted(Comparator.comparing(TrendingRsiStockResponse::latestRsi).reversed())
                 .toList();
     }

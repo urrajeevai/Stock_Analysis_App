@@ -1,5 +1,6 @@
 package com.stockapp.trade.repository;
 
+import com.stockapp.common.enums.TradeStatus;
 import com.stockapp.trade.entity.Trade;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -15,11 +16,9 @@ import java.util.UUID;
 @Repository
 public interface TradeRepository extends JpaRepository<Trade, UUID> {
 
-    List<Trade> findByUserIdAndStatus(UUID userId, String status);
+    List<Trade> findByUserIdAndStatus(UUID userId, TradeStatus status);
 
-    List<Trade> findByUserIdOrderByCreatedAtDesc(UUID userId);
-
-    List<Trade> findByStatus(String status);
+    List<Trade> findByStatus(TradeStatus status);
 
     @Query("SELECT t FROM Trade t WHERE t.userId = :userId " +
            "AND (:status IS NULL OR t.status = :status) " +
@@ -30,11 +29,14 @@ public interface TradeRepository extends JpaRepository<Trade, UUID> {
                                         Pageable pageable);
 
     @Query("SELECT COUNT(t) FROM Trade t WHERE t.userId = :userId AND t.status = :status")
-    long countByUserIdAndStatus(@Param("userId") UUID userId, @Param("status") String status);
+    long countByUserIdAndStatus(@Param("userId") UUID userId, @Param("status") TradeStatus status);
+
+    @Query("SELECT COUNT(t) FROM Trade t WHERE t.status = :status")
+    long countByStatus(@Param("status") TradeStatus status);
 
     List<Trade> findByAnalysisId(UUID analysisId);
 
-    List<Trade> findByUserIdAndStatusOrderByClosedAtDesc(UUID userId, String status);
+    List<Trade> findByUserIdAndStatusOrderByClosedAtDesc(UUID userId, TradeStatus status);
 
-    List<Trade> findByUserIdAndStatusAndClosedAtAfterOrderByClosedAtDesc(UUID userId, String status, Instant since);
+    List<Trade> findByUserIdAndStatusAndClosedAtAfterOrderByClosedAtDesc(UUID userId, TradeStatus status, Instant since);
 }

@@ -9,14 +9,31 @@ export default function AnalysisPage() {
   const navigate = useNavigate()
   const [page, setPage] = useState(0)
   const [filters, setFilters] = useState({})
+  const [sort, setSort] = useState('analysisDate')
+  const [sortDir, setSortDir] = useState('desc')
 
-  // No size passed — backend uses app.pagination.analysis.page-size from config
   const { analyses, loading, error, pagination } = useAnalysis({
-    ...filters, page,
+    ...filters, page, sort, sortDir,
   })
 
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters)
+    setPage(0)
+  }
+
+  const handleSort = (key) => {
+    if (sort === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSort(key)
+      setSortDir('desc')
+    }
+    setPage(0)
+  }
+
+  const handleResetSort = () => {
+    setSort('analysisDate')
+    setSortDir('desc')
     setPage(0)
   }
 
@@ -37,6 +54,10 @@ export default function AnalysisPage() {
         onFilterChange={handleFilterChange}
         pagination={pagination}
         onPageChange={setPage}
+        sortKey={sort}
+        sortDir={sortDir}
+        onSort={handleSort}
+        onResetSort={handleResetSort}
       />
     </div>
   )

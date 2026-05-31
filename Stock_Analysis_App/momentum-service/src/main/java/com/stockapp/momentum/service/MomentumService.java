@@ -8,6 +8,8 @@ import com.stockapp.momentum.repository.MomentumScoreRepository;
 import com.stockapp.momentum.repository.MomentumUploadRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -51,6 +53,7 @@ public class MomentumService {
      * a single bad row cannot corrupt the entire upload.
      */
     @Transactional
+    @CacheEvict(value = com.stockapp.momentum.config.CacheConfig.MOMENTUM_TRENDING, allEntries = true)
     public MomentumUploadResult uploadCsv(MultipartFile file, LocalDate scoreDate, UUID userId) {
         if (file == null || file.isEmpty()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "CSV file is empty");
@@ -232,11 +235,12 @@ public class MomentumService {
      * Returns stocks whose score is >= minScore on EVERY selected date and is
      * strictly increasing day-over-day across those dates.
      *
-     * Date resolution (mutually exclusive; dateFrom/dateTo wins if both supplied):
-     *   - dateFrom + dateTo: use all distinct score dates between those two dates
-     *   - lastNDays only:    use the last N distinct score dates in the DB
+     * Uses a MySQL 8 LAG window-function query — no in-memory grouping.
+     * Results are cached and invalidated on every CSV upload.
      */
     @Transactional(readOnly = true)
+    @Cacheable(value = com.stockapp.momentum.config.CacheConfig.MOMENTUM_TRENDING,
+               key = "#lastNDays + '-' + #minScore + '-' + #dateFrom + '-' + #dateTo")
     public List<TrendingStockResponse> getTrendingStocks(
             int lastNDays, BigDecimal minScore, LocalDate dateFrom, LocalDate dateTo) {
 
@@ -253,28 +257,14 @@ public class MomentumService {
 
         if (datesAsc.size() < 2) return Collections.emptyList();
 
-        List<MomentumScore> candidates =
-                scoreRepository.findByScoreDateInAndScoreGreaterThanEqual(datesAsc, minScore);
+        List<MomentumScore> rows = scoreRepository.findTrendingByDatesAndMinScore(
+                datesAsc, minScore, datesAsc.size());
 
-        Map<String, List<MomentumScore>> bySymbol = candidates.stream()
+        Map<String, List<MomentumScore>> bySymbol = rows.stream()
                 .collect(Collectors.groupingBy(MomentumScore::getSymbol));
 
-        int required = datesAsc.size();
-        return bySymbol.entrySet().stream()
-                .filter(entry -> {
-                    List<MomentumScore> scores = entry.getValue().stream()
-                            .sorted(Comparator.comparing(MomentumScore::getScoreDate)).toList();
-                    if (scores.size() < required) return false;
-                    Set<LocalDate> covered = scores.stream()
-                            .map(MomentumScore::getScoreDate).collect(Collectors.toSet());
-                    if (!covered.containsAll(datesAsc)) return false;
-                    for (int i = 1; i < scores.size(); i++) {
-                        if (scores.get(i).getScore().compareTo(scores.get(i - 1).getScore()) <= 0)
-                            return false;
-                    }
-                    return true;
-                })
-                .map(entry -> buildTrendingResponse(entry.getValue(), datesAsc))
+        return bySymbol.values().stream()
+                .map(scores -> buildTrendingResponse(scores, datesAsc))
                 .sorted(Comparator.comparing(TrendingStockResponse::latestScore).reversed())
                 .toList();
     }

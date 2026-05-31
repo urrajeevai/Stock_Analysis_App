@@ -11,7 +11,12 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "trade_trails")
+@Table(
+    name = "trade_trails",
+    indexes = {
+        @Index(name = "idx_trade_trails_trade_id", columnList = "trade_id, created_at DESC")
+    }
+)
 @Getter @Setter @NoArgsConstructor
 public class TradeTrail {
 
