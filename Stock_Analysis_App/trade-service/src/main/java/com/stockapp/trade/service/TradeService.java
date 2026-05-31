@@ -1,5 +1,8 @@
 package com.stockapp.trade.service;
 
+import com.stockapp.common.enums.Direction;
+import com.stockapp.common.enums.TradeOutcome;
+import com.stockapp.common.enums.TradeStatus;
 import com.stockapp.common.exception.ApiException;
 import com.stockapp.common.exception.ResourceNotFoundException;
 import com.stockapp.trade.dto.*;
@@ -20,10 +23,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -42,7 +43,8 @@ public class TradeService {
         trade.setUserId(userId);
         trade.setStockId(request.stockId());
         trade.setTicker(request.ticker().toUpperCase());
-        trade.setDirection(request.direction() != null ? request.direction().toUpperCase() : "LONG");
+        trade.setDirection(request.direction() != null
+                ? Direction.valueOf(request.direction().toUpperCase()) : Direction.LONG);
         trade.setEntryPrice(request.entryPrice());
         trade.setStopLoss(request.stopLoss());
         trade.setTargetPrice(request.targetPrice());
@@ -50,18 +52,24 @@ public class TradeService {
         trade.setNotes(request.notes());
         trade.setAnalysisId(request.analysisId());
         trade.setQuantity(request.quantity());
-        trade.setStatus("OPEN");
+        trade.setStatus(TradeStatus.OPEN);
         trade.setRrRatio(computeRrRatio(trade.getDirection(), trade.getEntryPrice(),
                 trade.getStopLoss(), trade.getTargetPrice()));
 
         Trade saved = tradeRepository.save(trade);
-        return toResponse(saved);
+        return toResponse(saved, null);
     }
 
     @Transactional(readOnly = true)
     public Page<TradeResponse> listTrades(UUID userId, String status, String ticker, Pageable pageable) {
-        return tradeRepository.findByUserIdWithFilters(userId, status, ticker, pageable)
-                .map(this::toResponse);
+        Page<Trade> page = tradeRepository.findByUserIdWithFilters(userId, status, ticker, pageable);
+        if (page.isEmpty()) return page.map(t -> toResponse(t, null));
+        List<UUID> ids = page.map(Trade::getId).toList();
+        Map<UUID, List<TradeTrail>> trailMap = tradeTrailRepository
+                .findByTradeIdInOrderByCreatedAtDesc(ids)
+                .stream()
+                .collect(java.util.stream.Collectors.groupingBy(TradeTrail::getTradeId));
+        return page.map(t -> toResponse(t, trailMap));
     }
 
     @Transactional(readOnly = true)
@@ -71,7 +79,7 @@ public class TradeService {
         if (!trade.getUserId().equals(userId)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Access denied to trade: " + id);
         }
-        return toResponse(trade);
+        return toResponse(trade, null);
     }
 
     @Transactional(readOnly = true)
@@ -79,7 +87,7 @@ public class TradeService {
         return tradeRepository.findByAnalysisId(analysisId)
                 .stream()
                 .filter(t -> t.getUserId().equals(userId))
-                .map(this::toResponse)
+                .map(t -> toResponse(t, null))
                 .toList();
     }
 
@@ -89,7 +97,7 @@ public class TradeService {
         if (!trade.getUserId().equals(userId)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Access denied to trade: " + id);
         }
-        if (!"OPEN".equals(trade.getStatus())) {
+        if (trade.getStatus() != TradeStatus.OPEN) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Cannot update a trade that is not OPEN");
         }
 
@@ -135,7 +143,7 @@ public class TradeService {
         }
 
         Trade saved = tradeRepository.save(trade);
-        return toResponse(saved);
+        return toResponse(saved, null);
     }
 
     public TradeResponse closeTrade(UUID id, UUID userId, CloseTradeRequest request) {
@@ -144,12 +152,12 @@ public class TradeService {
         if (!trade.getUserId().equals(userId)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Access denied to trade: " + id);
         }
-        if (!"OPEN".equals(trade.getStatus())) {
+        if (trade.getStatus() != TradeStatus.OPEN) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Trade is not OPEN, cannot close");
         }
 
-        trade.setStatus("CLOSED");
-        trade.setOutcome(request.outcome().toUpperCase());
+        trade.setStatus(TradeStatus.CLOSED);
+        trade.setOutcome(TradeOutcome.valueOf(request.outcome().toUpperCase()));
         trade.setClosedAt(Instant.now());
         trade.setActualExitPrice(request.actualExitPrice());
         if (request.notes() != null) {
@@ -158,7 +166,7 @@ public class TradeService {
 
         Trade saved = tradeRepository.save(trade);
         log.debug("Closed trade {} with outcome {}", id, request.outcome());
-        return toResponse(saved);
+        return toResponse(saved, null);
     }
 
     public void cancelTrade(UUID id, UUID userId) {
@@ -167,11 +175,11 @@ public class TradeService {
         if (!trade.getUserId().equals(userId)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Access denied to trade: " + id);
         }
-        if (!"OPEN".equals(trade.getStatus())) {
+        if (trade.getStatus() != TradeStatus.OPEN) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Trade is not OPEN, cannot cancel");
         }
 
-        trade.setStatus("CANCELLED");
+        trade.setStatus(TradeStatus.CANCELLED);
         tradeRepository.save(trade);
         log.debug("Cancelled trade {}", id);
     }
@@ -200,17 +208,25 @@ public class TradeService {
 
     @Transactional(readOnly = true)
     public List<TradeResponse> getOpenTrades() {
-        return tradeRepository.findByStatus("OPEN")
-                .stream()
-                .map(this::toResponse)
-                .toList();
+        List<Trade> open = tradeRepository.findByStatus(TradeStatus.OPEN);
+        return buildResponseList(open);
+    }
+
+    @Transactional(readOnly = true)
+    public long countTrades(UUID userId, String status) {
+        if (status == null || status.isBlank()) {
+            return tradeRepository.countByUserIdAndStatus(userId, TradeStatus.OPEN)
+                    + tradeRepository.countByUserIdAndStatus(userId, TradeStatus.CLOSED)
+                    + tradeRepository.countByUserIdAndStatus(userId, TradeStatus.CANCELLED);
+        }
+        return tradeRepository.countByUserIdAndStatus(userId, TradeStatus.valueOf(status.toUpperCase()));
     }
 
     @Transactional(readOnly = true)
     public TradeStatsResponse getStats(UUID userId) {
-        long openCount = tradeRepository.countByUserIdAndStatus(userId, "OPEN");
-        long closedCount = tradeRepository.countByUserIdAndStatus(userId, "CLOSED");
-        long cancelledCount = tradeRepository.countByUserIdAndStatus(userId, "CANCELLED");
+        long openCount = tradeRepository.countByUserIdAndStatus(userId, TradeStatus.OPEN);
+        long closedCount = tradeRepository.countByUserIdAndStatus(userId, TradeStatus.CLOSED);
+        long cancelledCount = tradeRepository.countByUserIdAndStatus(userId, TradeStatus.CANCELLED);
         long totalCount = openCount + closedCount + cancelledCount;
         return new TradeStatsResponse(openCount, closedCount, cancelledCount, totalCount);
     }
@@ -219,17 +235,17 @@ public class TradeService {
 
     @Transactional(readOnly = true)
     public PLSummaryResponse getPLSummary(UUID userId) {
-        List<Trade> allClosed = tradeRepository.findByUserIdAndStatusOrderByClosedAtDesc(userId, "CLOSED");
+        List<Trade> allClosed = tradeRepository.findByUserIdAndStatusOrderByClosedAtDesc(userId, TradeStatus.CLOSED);
         long profitCount = allClosed.stream().filter(t -> computePL(t) != null && computePL(t).compareTo(BigDecimal.ZERO) > 0).count();
         long lossCount   = allClosed.stream().filter(t -> computePL(t) != null && computePL(t).compareTo(BigDecimal.ZERO) < 0).count();
-        long openCount   = tradeRepository.countByUserIdAndStatus(userId, "OPEN");
+        long openCount   = tradeRepository.countByUserIdAndStatus(userId, TradeStatus.OPEN);
 
         LocalDate periodEnd   = LocalDate.now();
         LocalDate periodStart = periodEnd.minusMonths(1);
         Instant since = periodStart.atStartOfDay(ZoneOffset.UTC).toInstant();
 
         List<Trade> monthClosed = tradeRepository.findByUserIdAndStatusAndClosedAtAfterOrderByClosedAtDesc(
-                userId, "CLOSED", since);
+                userId, TradeStatus.CLOSED, since);
 
         BigDecimal totalProfit = BigDecimal.ZERO;
         BigDecimal totalLoss   = BigDecimal.ZERO;
@@ -252,7 +268,7 @@ public class TradeService {
         LocalDate since = LocalDate.now().minusMonths(months);
         Instant sinceInstant = since.atStartOfDay(ZoneOffset.UTC).toInstant();
 
-        return tradeRepository.findByUserIdAndStatusAndClosedAtAfterOrderByClosedAtDesc(userId, "CLOSED", sinceInstant)
+        return tradeRepository.findByUserIdAndStatusAndClosedAtAfterOrderByClosedAtDesc(userId, TradeStatus.CLOSED, sinceInstant)
                 .stream()
                 .filter(t -> {
                     if (ticker != null && !ticker.isBlank()) {
@@ -262,7 +278,8 @@ public class TradeService {
                 })
                 .filter(t -> {
                     if (direction != null && !direction.isBlank()) {
-                        return t.getDirection().equalsIgnoreCase(direction.trim());
+                        return t.getDirection() != null &&
+                               t.getDirection().name().equalsIgnoreCase(direction.trim());
                     }
                     return true;
                 })
@@ -273,7 +290,7 @@ public class TradeService {
                     if ("LOSS".equalsIgnoreCase(type)) return pl != null && pl.compareTo(BigDecimal.ZERO) < 0;
                     return true;
                 })
-                .map(this::toResponse)
+                .map(t -> toResponse(t, null))
                 .toList();
     }
 
@@ -285,7 +302,7 @@ public class TradeService {
         if (!trade.getUserId().equals(userId)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Access denied to trade: " + tradeId);
         }
-        if (!"OPEN".equals(trade.getStatus())) {
+        if (trade.getStatus() != TradeStatus.OPEN) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Cannot add trail to a non-OPEN trade");
         }
         if (request.newStopLoss() == null && request.newTarget() == null) {
@@ -330,11 +347,11 @@ public class TradeService {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    private BigDecimal computeRrRatio(String direction, BigDecimal entryPrice,
+    private BigDecimal computeRrRatio(Direction direction, BigDecimal entryPrice,
                                        BigDecimal stopLoss, BigDecimal targetPrice) {
         try {
             BigDecimal risk, reward;
-            if ("LONG".equals(direction)) {
+            if (Direction.LONG == direction) {
                 risk = entryPrice.subtract(stopLoss);
                 reward = targetPrice.subtract(entryPrice);
             } else {
@@ -354,7 +371,7 @@ public class TradeService {
         if (trade.getActualExitPrice() == null || trade.getEntryPrice() == null) return null;
         BigDecimal qty = trade.getQuantity() != null ? trade.getQuantity() : BigDecimal.ONE;
         BigDecimal diff;
-        if ("LONG".equalsIgnoreCase(trade.getDirection())) {
+        if (Direction.LONG == trade.getDirection()) {
             diff = trade.getActualExitPrice().subtract(trade.getEntryPrice());
         } else {
             diff = trade.getEntryPrice().subtract(trade.getActualExitPrice());
@@ -388,8 +405,10 @@ public class TradeService {
         return rev;
     }
 
-    private TradeResponse toResponse(Trade trade) {
-        List<TradeTrail> trails = tradeTrailRepository.findByTradeIdOrderByCreatedAtDesc(trade.getId());
+    private TradeResponse toResponse(Trade trade, Map<UUID, List<TradeTrail>> trailMap) {
+        List<TradeTrail> trails = trailMap != null
+                ? trailMap.getOrDefault(trade.getId(), List.of())
+                : tradeTrailRepository.findByTradeIdOrderByCreatedAtDesc(trade.getId());
 
         BigDecimal activeSL = trails.stream()
                 .map(TradeTrail::getNewStopLoss).filter(Objects::nonNull).findFirst()
@@ -403,13 +422,13 @@ public class TradeService {
                 trade.getUserId(),
                 trade.getStockId(),
                 trade.getTicker(),
-                trade.getDirection(),
+                trade.getDirection() != null ? trade.getDirection().name() : null,
                 trade.getEntryPrice(),
                 trade.getStopLoss(),
                 trade.getTargetPrice(),
                 trade.getRrRatio(),
-                trade.getStatus(),
-                trade.getOutcome(),
+                trade.getStatus() != null ? trade.getStatus().name() : null,
+                trade.getOutcome() != null ? trade.getOutcome().name() : null,
                 trade.getNotes(),
                 trade.getSetupType(),
                 trade.getCreatedAt(),
@@ -423,6 +442,16 @@ public class TradeService {
                 computePLPercent(trade),
                 computeHoldingDays(trade)
         );
+    }
+
+    private List<TradeResponse> buildResponseList(List<Trade> trades) {
+        if (trades.isEmpty()) return List.of();
+        List<UUID> ids = trades.stream().map(Trade::getId).toList();
+        Map<UUID, List<TradeTrail>> trailMap = tradeTrailRepository
+                .findByTradeIdInOrderByCreatedAtDesc(ids)
+                .stream()
+                .collect(java.util.stream.Collectors.groupingBy(TradeTrail::getTradeId));
+        return trades.stream().map(t -> toResponse(t, trailMap)).toList();
     }
 
     private RevisionResponse toRevisionResponse(TradeRevision rev) {

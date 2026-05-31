@@ -3,6 +3,7 @@ package com.stockapp.analysis.service;
 import com.stockapp.analysis.dto.*;
 import com.stockapp.analysis.entity.Analysis;
 import com.stockapp.analysis.repository.AnalysisRepository;
+import com.stockapp.common.enums.AnalysisOutcome;
 import com.stockapp.common.exception.ApiException;
 import com.stockapp.common.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -49,7 +50,7 @@ public class AnalysisService {
         analysis.setThesis(request.thesis());
         analysis.setExpectedDirection(request.expectedDirection());
         analysis.setAnalysisDate(request.analysisDate());
-        analysis.setOutcome("PENDING");
+        analysis.setOutcome(AnalysisOutcome.PENDING);
         analysis.setStockPrice(request.stockPrice());
         analysis.setRiskPrice(request.riskPrice());
         analysis.setRewardPrice(request.rewardPrice());
@@ -86,7 +87,7 @@ public class AnalysisService {
         if (request.stockId() != null)          analysis.setStockId(request.stockId());
         if (request.setupType() != null)        analysis.setSetupType(request.setupType());
         if (request.thesis() != null)           analysis.setThesis(request.thesis());
-        if (request.outcome() != null)          analysis.setOutcome(request.outcome().toUpperCase());
+        if (request.outcome() != null)          analysis.setOutcome(AnalysisOutcome.valueOf(request.outcome().toUpperCase()));
         if (request.expectedDirection() != null) analysis.setExpectedDirection(request.expectedDirection());
         if (request.stockPrice() != null)       analysis.setStockPrice(request.stockPrice());
         if (request.riskPrice() != null)        analysis.setRiskPrice(request.riskPrice());
@@ -104,7 +105,7 @@ public class AnalysisService {
         if (!analysis.getUserId().equals(userId)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Access denied to analysis: " + id);
         }
-        analysis.setOutcome(outcome.toUpperCase());
+        analysis.setOutcome(AnalysisOutcome.valueOf(outcome.toUpperCase()));
         log.debug("Set outcome for analysis {} to {}", id, outcome);
         return toResponse(analysisRepository.save(analysis));
     }
@@ -321,7 +322,7 @@ public class AnalysisService {
                 a.getSetupType(),
                 a.getThesis(),
                 a.getExpectedDirection(),
-                a.getOutcome(),
+                a.getOutcome() != null ? a.getOutcome().name() : null,
                 a.getAnalysisDate(),
                 a.getStockPrice(),
                 a.getRiskPrice(),

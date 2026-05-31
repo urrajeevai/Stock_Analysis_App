@@ -33,7 +33,7 @@ public interface AnalysisRepository extends JpaRepository<Analysis, UUID> {
     @Query("SELECT a.setupType, " +
            "COUNT(a), " +
            "SUM(CASE WHEN a.outcome = 'CORRECT' THEN 1 ELSE 0 END), " +
-           "SUM(CASE WHEN a.outcome = 'INCORRECT' THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN a.outcome = 'FAILED' THEN 1 ELSE 0 END), " +
            "SUM(CASE WHEN a.outcome = 'PENDING' THEN 1 ELSE 0 END) " +
            "FROM Analysis a WHERE a.userId = :userId AND a.setupType IS NOT NULL " +
            "GROUP BY a.setupType")
@@ -42,7 +42,7 @@ public interface AnalysisRepository extends JpaRepository<Analysis, UUID> {
     @Query("SELECT a.ticker, " +
            "COUNT(a), " +
            "SUM(CASE WHEN a.outcome = 'CORRECT' THEN 1 ELSE 0 END), " +
-           "SUM(CASE WHEN a.outcome = 'INCORRECT' THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN a.outcome = 'FAILED' THEN 1 ELSE 0 END), " +
            "SUM(CASE WHEN a.outcome = 'PENDING' THEN 1 ELSE 0 END) " +
            "FROM Analysis a WHERE a.userId = :userId " +
            "GROUP BY a.ticker ORDER BY COUNT(a) DESC")
