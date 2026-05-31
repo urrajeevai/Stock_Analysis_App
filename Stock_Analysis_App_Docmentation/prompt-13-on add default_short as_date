@@ -1,0 +1,9 @@
+Context:
+I already have a working Stock Analysis & Trade Tracking application
+Requirement: 
+with the following features on page trades: 
+	-default short shuld be on date latest shuld be on top (latest to oldest)
+with the following features on page /analysis: 
+	-default short shuld be on date latest shuld be on top (latest to oldest)
+Instruction:
+Implement the backend API and frontend changes. Also update CLAUDE.md and add a new dated entry in docs/ explaining what was changed and why.

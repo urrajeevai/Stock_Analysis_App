@@ -1,0 +1,104 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  codec:
+    max-in-memory-size: 20MB
+  cloud:
+    gateway:
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins:
+              - "http://localhost:3000"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - PATCH
+              - DELETE
+              - OPTIONS
+            allowedHeaders:
+              - "*"
+            allowCredentials: true
+      routes:
+        - id: auth-service
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - StripPrefix=1
+
+        - id: trade-service
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/trades/**
+          filters:
+            - StripPrefix=1
+
+        - id: analysis-service
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/analyses/**
+          filters:
+            - StripPrefix=1
+
+        - id: price-service
+          uri: http://localhost:8084
+          predicates:
+            - Path=/api/prices/**
+          filters:
+            - StripPrefix=1
+
+        - id: alert-service
+          uri: http://localhost:8084
+          predicates:
+            - Path=/api/alerts/**
+          filters:
+            - StripPrefix=1
+
+        - id: performance-service
+          uri: http://localhost:8085
+          predicates:
+            - Path=/api/performance/**
+          filters:
+            - StripPrefix=1
+
+        - id: stocks-service
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/stocks/**
+          filters:
+            - StripPrefix=1
+
+        - id: roles-service
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/roles/**
+          filters:
+            - StripPrefix=1
+
+        - id: momentum-service
+          uri: http://localhost:8086
+          predicates:
+            - Path=/api/momentum/**
+          filters:
+            - StripPrefix=1
+
+        - id: rsi-service
+          uri: http://localhost:8087
+          predicates:
+            - Path=/api/rsi/**
+          filters:
+            - StripPrefix=1
+
+jwt:
+  secret: stockapp-secret-key-must-be-at-least-256-bits-long-for-hs256-algorithm
+  access-token-expiry-ms: 900000
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    com.stockapp: DEBUG

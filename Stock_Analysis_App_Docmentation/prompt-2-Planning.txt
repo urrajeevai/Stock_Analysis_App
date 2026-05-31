@@ -1,0 +1,46 @@
+#1. Activate the plan mode: shift+tab (two times then see plan mode on)
+
+Context: I have an empty project folder with just a .env and .gitignore file. I want to build a Stock Analysis & Trade Tracking web app from scratch.
+
+Instruction: First, plan out the architecture — what components, what data structure, how the UI flows. Then build the entire app.  After everything is working, create documentation. Don't ask me any questions — just plan it, build it, and document it.
+
+Technology Recommendation:
+Backend:
+- Java Spring Boot
+- REST APIs
+- Role-based access control
+- JWT authentication
+- microservices
+
+Frontend:
+- React + Vite
+- Tailwind CSS
+- Responsive web UI
+- Role-based dashboard
+
+Database:
+- PostgreSQL
+
+Input:
+- Create pre-trade stock analysis
+- Log trades with entry, stop-loss, target, and R/R ratio
+- Track SL/target revisions with full history
+- Monitor live stock prices
+- Receive alerts near stop-loss or target
+- Measure strike rate and trading performance
+
+Key Features:
+-Track correct vs failed analyses
+-Measure win/loss ratio and strike rate
+-Calculate average risk, reward, and R/R
+-Identify best-performing setups
+-Monitor open trades near SL/target
+-Generate weekly/monthly performance reports
+
+Output:
+- A written plan of the architecture
+- A fully working Stock Analysis & Trade Tracking at localhost:3000
+- A CLAUDE.md file describing the project — what it does, how to run it, tech stack, folder structure, what's coming next. Keep under 200 lines.
+- A docs/ folder with a decision log file named with today's date (e.g., docs/2026-05-17-initial-build.md) recording what was built, what technical choices were made and why.
+- Run the app for user preview at the end.
+

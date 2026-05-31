@@ -1,0 +1,43 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir \"C:\\\\Users\\\\Rajeev\\\\OneDrive\\\\Desktop\\\\Claude-Folder\\\\Stock_Analysis_App\"22)",
+      "PowerShell(psql *)",
+      "PowerShell(New-Item *)",
+      "Bash(node -e \"const pkg = require\\('C:/Users/Rajeev/OneDrive/Desktop/Claude-Folder/Stock_Analysis_App/frontend/node_modules/react-router-dom/package.json'\\); console.log\\('react-router-dom:', pkg.version\\)\")",
+      "Bash(node -e \"const pkg = require\\('C:/Users/Rajeev/OneDrive/Desktop/Claude-Folder/Stock_Analysis_App/frontend/node_modules/react/package.json'\\); console.log\\('react:', pkg.version\\)\")",
+      "PowerShell(Start-Process \"http://localhost:3000\")",
+      "PowerShell(Start-Process \"http://localhost:8082/swagger-ui.html\")",
+      "Skill(ralph-wiggum:ralph-loop)",
+      "Bash(node -e \"const h = require\\('@heroicons/react/24/outline'\\); console.log\\(Object.keys\\(h\\).filter\\(k => k.includes\\('ArrowRight'\\)\\)\\)\")",
+      "Bash(node -e \"const h = require\\('@heroicons/react/24/outline'\\); console.log\\(Object.keys\\(h\\).filter\\(k => k.includes\\('ChartBar'\\)\\)\\)\")",
+      "Bash(npm run *)",
+      "Bash(not exist *)",
+      "Bash(dir \"C:\\\\Users\\\\Rajeev\\\\OneDrive\\\\Desktop\\\\Claude-Folder\\\\Stock_Analysis_App\\\\docs\")",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Rajeev\\\\OneDrive\\\\Desktop\\\\Claude-Folder\\\\Stock_Analysis_App\\\\analysis-service\" -Recurse -Filter \"*.java\")",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(xargs grep -l \"FileStorage\\\\|file.*upload\\\\|MultipartFile\")",
+      "Bash(xargs cat)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Rajeev\\\\OneDrive\\\\Desktop\\\\Claude-Folder\\\\Stock_Analysis_App\\\\analysis-service\" -Recurse -Directory)",
+      "Bash(Select-Object -First 20)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Rajeev\\\\OneDrive\\\\Desktop\\\\Claude-Folder\\\\Stock_Analysis_App\\\\analysis-service\" -Recurse | Where-Object { $_.PSIsContainer } | Select-Object FullName)",
+      "Bash(mvn -pl analysis-service compile -q)",
+      "Bash(mvn -pl analysis-service package -DskipTests -q)",
+      "Bash(mvn -pl api-gateway compile -q)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Rajeev\\\\OneDrive\\\\Desktop\\\\Claude-Folder\\\\Stock_Analysis_App\" -Recurse -Directory)",
+      "Bash(Sort-Object)",
+      "Bash(mvn compile *)",
+      "Bash(npx vite *)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Rajeev\\\\OneDrive\\\\Desktop\\\\Claude-Folder\\\\Stock_Analysis_App\\\\analysis-service\\\\src\\\\main\\\\java\\\\com\\\\stockapp\\\\analysis\" -Recurse -File | Select-Object -ExpandProperty FullName | ForEach-Object { $_.Replace\\('C:\\\\Users\\\\Rajeev\\\\OneDrive\\\\Desktop\\\\Claude-Folder\\\\Stock_Analysis_App\\\\analysis-service\\\\src\\\\main\\\\java\\\\com\\\\stockapp\\\\analysis\\\\', ''\\) } | Sort-Object)",
+      "PowerShell(netstat *)",
+      "Bash(mvn test *)",
+      "Bash(Get-ChildItem *)",
+      "Bash(grep -E \"\\\\.\\(tsx?|jsx?\\)$\")",
+      "Bash(Select-Object Name)",
+      "Bash(Find \"C:\\\\Users\\\\Rajeev\\\\OneDrive\\\\Desktop\\\\Claude-Folder\\\\Stock_Analysis_App\\\\db\" -type f -name \"*.sql\")",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://localhost:8083/analyses\" -Method GET -TimeoutSec 5 -ErrorAction Stop; \"Status: $\\($r.StatusCode\\)\" } catch { \"Response: $\\($_.Exception.Response.StatusCode.value__\\) $\\($_.Exception.Response.StatusDescription\\) -- Service is $\\(if\\($_.Exception.Response\\) {'RUNNING'} else {'NOT RUNNING / unreachable'}\\)\" })",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://localhost:8080/api/analyses\" -Method GET -TimeoutSec 5 -ErrorAction Stop; \"Gateway OK: $\\($r.StatusCode\\)\" } catch { \"Gateway: $\\($_.Exception.Response.StatusCode.value__\\) $\\($_.Exception.Response.StatusDescription\\) -- Gateway is $\\(if\\($_.Exception.Response\\) {'RUNNING'} else {'NOT RUNNING / unreachable'}\\)\" })",
+      "PowerShell(try { $r = Invoke-WebRequest -Uri \"http://localhost:3000\" -Method GET -TimeoutSec 5 -ErrorAction Stop; \"Frontend OK: $\\($r.StatusCode\\)\" } catch { \"Frontend: $\\($_.Exception.Response.StatusCode.value__\\) -- $\\(if\\($_.Exception.Response\\) {'RUNNING'} else {'NOT RUNNING'}\\)\" })"
+    ]
+  }
+}

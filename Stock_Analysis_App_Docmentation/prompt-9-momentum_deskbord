@@ -1,0 +1,76 @@
+Context:
+I already have a working Stock Analysis & Trade Tracking application.
+
+Requirement:
+Add a new feature module called "Momentum Score Dashboard" to the existing application.
+
+Objective:
+I want to upload a CSV file containing stock momentum score data. The system should store momentum scores date-wise and generate reports to identify stocks whose momentum score:
+
+- is increasing every day
+- score is greater than 60
+- supports filtering by:
+  - selected date range
+  - last 3 days
+  - last N days
+
+New Module:
+Momentum Score Dashboard
+
+CSV Input Details:
+
+The uploaded CSV may contain these columns:
+- Stock Name
+- Symbol
+- Exch
+- Sector Name
+- Industry Name
+- Score
+- 4 Day Change
+- Close
+- Chg%
+- Symbol with Comma for External Upload
+
+However, only consider and store these fields:
+- Stock Name
+- Symbol
+- Sector Name
+- Score
+- Upload Date/Time
+
+Important:
+- Ignore all other CSV columns
+- Upload date/time should be captured automatically when CSV is uploaded
+- Do not depend on score_date inside CSV
+- User may optionally select score date from UI before upload
+- If no date selected, use current upload date/time
+
+Functional Requirements:
+
+1. CSV Upload Screen
+Create a frontend screen for Momentum Score CSV upload.
+Features:
+- CSV file upload
+- Optional score date picker
+- Upload button
+- Download sample CSV button
+- Upload summary/result section
+2. CSV Processing Rules
+Supported CSV columns:
+- Stock Name
+- Symbol
+- Sector Name
+- Score
+Validation Rules:
+- Symbol is required
+- Stock Name is required
+- Score is required
+- Score must be numeric
+- Score should be stored as decimal/float
+- Symbol should be stored in uppercase
+- Trim extra spaces
+- Skip blank rows
+- Ignore unsupported columns
+- Reject duplicate rows within same upload
+
+Instruction: Build the backend API and front end and  Updated CLAUDE.md and a new dated entry in docs/ with what changed and why.

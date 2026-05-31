@@ -1,0 +1,46 @@
+﻿server:
+  port: 8084
+
+spring:
+  application:
+    name: price-alert-service
+  datasource:
+    url: jdbc:mysql://localhost:3306/stock_analysis?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: root
+  jpa:
+    database-platform: org.hibernate.dialect.MySQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        type:
+          preferred_uuid_jdbc_type: VARCHAR
+  scheduling:
+    enabled: true
+
+jwt:
+  secret: stockapp-secret-key-must-be-at-least-256-bits-long-for-hs256-algorithm
+  access-token-expiry-ms: 900000
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
+    tryItOutEnabled: true
+
+price-polling:
+  trade-service-url: http://localhost:8082
+  alert-threshold-pct: 2.0
+  interval-ms: 60000
+
+logging:
+  level:
+    com.stockapp: DEBUG
+

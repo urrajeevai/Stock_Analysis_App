@@ -1,0 +1,10 @@
+Context:
+I already have a working Stock Analysis & Trade Tracking application
+Requirement:
+Enhance the Analysis Detail page Chart Images section. Currently, only browse/upload is supported. Add support for:
+-Copy-paste image upload
+-Drag-and-drop image upload
+Objective:
+This functionality should work for all four chart image upload fields.
+Instruction:
+Implement the backend API and frontend changes. Also update CLAUDE.md and add a new dated entry in docs/ explaining what was changed and why.
