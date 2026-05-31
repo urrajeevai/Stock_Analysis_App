@@ -21,8 +21,8 @@ spring:
           preferred_uuid_jdbc_type: VARCHAR
 
 jwt:
-  secret: stockapp-secret-key-must-be-at-least-256-bits-long-for-hs256-algorithm
-  access-token-expiry-ms: 900000
+  secret: ${JWT_SECRET:stockapp-secret-key-must-be-at-least-256-bits-long-for-hs256-algorithm}
+  access-token-expiry-ms: ${JWT_EXPIRY_MS:900000}
 
 springdoc:
   api-docs:

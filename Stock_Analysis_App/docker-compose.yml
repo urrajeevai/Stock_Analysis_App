@@ -1,26 +1,35 @@
 version: '3.9'
 services:
-  postgres:
-    image: postgres:16-alpine
+  mysql:
+    image: mysql:8.0
     ports:
-      - "5432:5432"
+      - "3306:3306"
     environment:
-      POSTGRES_DB: stockapp
-      POSTGRES_USER: stockapp
-      POSTGRES_PASSWORD: stockapp_pass
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: stock_analysis
+      MYSQL_USER: ${DB_USER:-stockapp}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-stockapp_pass}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
       - ./db/init:/docker-entrypoint-initdb.d
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  pgadmin:
-    image: dpage/pgadmin4:latest
+  phpmyadmin:
+    image: phpmyadmin:latest
     ports:
-      - "5050:80"
+      - "8090:80"
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@stockapp.com
-      PGADMIN_DEFAULT_PASSWORD: admin
+      PMA_HOST: mysql
+      PMA_USER: root
+      PMA_PASSWORD: ${DB_ROOT_PASSWORD:-root}
     depends_on:
-      - postgres
+      mysql:
+        condition: service_healthy
 
 volumes:
-  postgres_data:
+  mysql_data:
