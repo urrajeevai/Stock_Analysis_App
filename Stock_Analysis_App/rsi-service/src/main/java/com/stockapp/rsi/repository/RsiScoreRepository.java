@@ -37,6 +37,33 @@ public interface RsiScoreRepository extends JpaRepository<RsiScore, Long> {
             @Param("dates") List<LocalDate> dates,
             @Param("minScore") BigDecimal minScore);
 
+    @Query(value = """
+            SELECT rs.*
+            FROM rsi_scores rs
+            WHERE rs.score_date IN (:dates) AND rs.rsi_score >= :minRsi
+              AND rs.symbol IN (
+                SELECT symbol FROM (
+                  SELECT symbol,
+                         COUNT(*) AS total_days,
+                         SUM(CASE WHEN prev_rsi IS NULL OR rsi_score > prev_rsi THEN 1 ELSE 0 END) AS inc_days
+                  FROM (
+                    SELECT symbol, rsi_score, score_date,
+                           LAG(rsi_score) OVER (PARTITION BY symbol ORDER BY score_date) AS prev_rsi
+                    FROM rsi_scores
+                    WHERE score_date IN (:dates) AND rsi_score >= :minRsi
+                  ) windowed
+                  GROUP BY symbol
+                  HAVING total_days = :dateCount AND inc_days = :dateCount
+                ) valid_symbols
+              )
+            ORDER BY rs.symbol, rs.score_date
+            """,
+           nativeQuery = true)
+    List<RsiScore> findTrendingByDatesAndMinRsi(
+            @Param("dates") List<LocalDate> dates,
+            @Param("minRsi") BigDecimal minRsi,
+            @Param("dateCount") int dateCount);
+
     @Query("SELECT DISTINCT s.scoreDate FROM RsiScore s ORDER BY s.scoreDate DESC")
     List<LocalDate> findDistinctScoreDates();
 

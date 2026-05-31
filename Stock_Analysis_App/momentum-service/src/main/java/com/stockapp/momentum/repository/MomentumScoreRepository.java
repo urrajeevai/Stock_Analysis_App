@@ -37,6 +37,39 @@ public interface MomentumScoreRepository extends JpaRepository<MomentumScore, Lo
             @Param("dates") List<LocalDate> dates,
             @Param("minScore") BigDecimal minScore);
 
+    /**
+     * SQL-based trending filter using LAG window function (MySQL 8+).
+     * Returns only symbols that:
+     *   1. Have a record on every date in :dates with score >= :minScore
+     *   2. Show strictly-increasing scores across all those dates
+     */
+    @Query(value = """
+            SELECT ms.*
+            FROM momentum_scores ms
+            WHERE ms.score_date IN (:dates) AND ms.score >= :minScore
+              AND ms.symbol IN (
+                SELECT symbol FROM (
+                  SELECT symbol,
+                         COUNT(*) AS total_days,
+                         SUM(CASE WHEN prev_score IS NULL OR score > prev_score THEN 1 ELSE 0 END) AS inc_days
+                  FROM (
+                    SELECT symbol, score, score_date,
+                           LAG(score) OVER (PARTITION BY symbol ORDER BY score_date) AS prev_score
+                    FROM momentum_scores
+                    WHERE score_date IN (:dates) AND score >= :minScore
+                  ) windowed
+                  GROUP BY symbol
+                  HAVING total_days = :dateCount AND inc_days = :dateCount
+                ) valid_symbols
+              )
+            ORDER BY ms.symbol, ms.score_date
+            """,
+           nativeQuery = true)
+    List<MomentumScore> findTrendingByDatesAndMinScore(
+            @Param("dates") List<LocalDate> dates,
+            @Param("minScore") BigDecimal minScore,
+            @Param("dateCount") int dateCount);
+
     @Query("SELECT DISTINCT s.scoreDate FROM MomentumScore s ORDER BY s.scoreDate DESC")
     List<LocalDate> findDistinctScoreDates();
 
