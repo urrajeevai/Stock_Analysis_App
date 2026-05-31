@@ -1,12 +1,16 @@
 package com.stockapp.performance.service;
 
 import com.stockapp.performance.client.TradeServiceClient;
+import com.stockapp.performance.config.CacheConfig;
 import com.stockapp.performance.dto.*;
 import com.stockapp.performance.entity.PerformanceSnapshot;
 import com.stockapp.performance.repository.PerformanceSnapshotRepository;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,9 +40,7 @@ public class PerformanceCalculationService {
     // Summary
     // -----------------------------------------------------------------------
 
-    /**
-     * Computes an overall performance summary for all closed trades of a user.
-     */
+    @Cacheable(value = CacheConfig.PERF_SUMMARY, key = "#userId")
     public PerformanceSummaryResponse computeSummary(UUID userId) {
         List<Map<String, Object>> closedTrades = tradeServiceClient.getClosedTrades(userId.toString());
 
@@ -117,10 +119,7 @@ public class PerformanceCalculationService {
     // Weekly breakdown
     // -----------------------------------------------------------------------
 
-    /**
-     * Groups all closed trades by ISO week (year + week number) and returns
-     * performance metrics per week, sorted newest first.
-     */
+    @Cacheable(value = CacheConfig.PERF_WEEKLY, key = "#userId")
     public List<PeriodPerformanceResponse> computeWeekly(UUID userId) {
         List<Map<String, Object>> closedTrades = tradeServiceClient.getClosedTrades(userId.toString());
 
@@ -155,9 +154,7 @@ public class PerformanceCalculationService {
     // Monthly breakdown
     // -----------------------------------------------------------------------
 
-    /**
-     * Groups all closed trades by calendar month and returns performance metrics per month.
-     */
+    @Cacheable(value = CacheConfig.PERF_MONTHLY, key = "#userId")
     public List<PeriodPerformanceResponse> computeMonthly(UUID userId) {
         List<Map<String, Object>> closedTrades = tradeServiceClient.getClosedTrades(userId.toString());
 
@@ -207,10 +204,7 @@ public class PerformanceCalculationService {
     // Setup performance
     // -----------------------------------------------------------------------
 
-    /**
-     * Groups closed trades by setup type and returns win rate and avg RR per setup,
-     * sorted by strike rate descending.
-     */
+    @Cacheable(value = CacheConfig.PERF_SETUPS, key = "#userId")
     public List<SetupPerformanceResponse> getBestSetups(UUID userId) {
         List<Map<String, Object>> closedTrades = tradeServiceClient.getClosedTrades(userId.toString());
 
@@ -251,10 +245,7 @@ public class PerformanceCalculationService {
     // RR Distribution
     // -----------------------------------------------------------------------
 
-    /**
-     * Buckets closed trades by their rrRatio:
-     *   "<1", "1-2", "2-3", "3+"
-     */
+    @Cacheable(value = CacheConfig.PERF_RR_DIST, key = "#userId")
     public List<RRDistributionResponse> getRRDistribution(UUID userId) {
         List<Map<String, Object>> closedTrades = tradeServiceClient.getClosedTrades(userId.toString());
 
@@ -290,6 +281,13 @@ public class PerformanceCalculationService {
      * Deletes all stored snapshots for the user and re-runs computations to persist new ones.
      */
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(value = CacheConfig.PERF_SUMMARY, key = "#userId"),
+        @CacheEvict(value = CacheConfig.PERF_WEEKLY,  key = "#userId"),
+        @CacheEvict(value = CacheConfig.PERF_MONTHLY, key = "#userId"),
+        @CacheEvict(value = CacheConfig.PERF_SETUPS,  key = "#userId"),
+        @CacheEvict(value = CacheConfig.PERF_RR_DIST, key = "#userId")
+    })
     public void forceRecompute(UUID userId) {
         log.info("Force-recomputing performance snapshots for user {}", userId);
 
