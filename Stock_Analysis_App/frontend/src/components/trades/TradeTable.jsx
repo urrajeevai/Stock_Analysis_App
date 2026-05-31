@@ -1,4 +1,3 @@
-import { useState, useMemo } from 'react'
 import {
   ChevronUpIcon,
   ChevronDownIcon,
@@ -66,14 +65,6 @@ function SkeletonRow() {
   )
 }
 
-// Push nulls to the bottom regardless of sort direction
-function nullLast(value, dir) {
-  if (value == null) return dir === 'asc' ? Infinity : -Infinity
-  return value
-}
-
-const STATUS_ORDER = { OPEN: 0, CLOSED: 1, CANCELLED: 2 }
-
 export default function TradeTable({
   trades,
   loading,
@@ -85,44 +76,16 @@ export default function TradeTable({
   showPL = false,
   pagination,
   onPageChange,
+  sortKey = 'createdAt',
+  sortDir = 'desc',
+  onSort,
+  onResetSort,
 }) {
   const showFilters = !!onFilterChange
   const hasClosed = trades.some(t => t.status === 'CLOSED')
   const showPLCol = showPL || hasClosed
 
-  const [sortKey, setSortKey] = useState('date')
-  const [sortDir, setSortDir] = useState('desc')
-
-  const handleSort = (key) => {
-    if (sortKey === key) {
-      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortKey(key)
-      setSortDir('desc')
-    }
-  }
-
-  const displayTrades = useMemo(() => {
-    if (!sortKey) return trades
-    return [...trades].sort((a, b) => {
-      if (sortKey === 'pl') {
-        const av = nullLast(a.plAmount, sortDir)
-        const bv = nullLast(b.plAmount, sortDir)
-        return sortDir === 'asc' ? av - bv : bv - av
-      }
-      if (sortKey === 'date') {
-        const av = new Date(a.createdAt).getTime()
-        const bv = new Date(b.createdAt).getTime()
-        return sortDir === 'asc' ? av - bv : bv - av
-      }
-      if (sortKey === 'status') {
-        const av = STATUS_ORDER[a.status] ?? 99
-        const bv = STATUS_ORDER[b.status] ?? 99
-        return sortDir === 'asc' ? av - bv : bv - av
-      }
-      return 0
-    })
-  }, [trades, sortKey, sortDir])
+  const displayTrades = trades
 
   return (
     <div className="card overflow-hidden">
@@ -154,10 +117,10 @@ export default function TradeTable({
                 <span className="font-semibold text-slate-600">{pagination.totalElements}</span> records
               </span>
             )}
-            {sortKey && (
+            {onResetSort && sortKey !== 'createdAt' && (
               <button
                 type="button"
-                onClick={() => setSortKey(null)}
+                onClick={onResetSort}
                 className="text-xs text-slate-400 hover:text-slate-600 transition-colors"
               >
                 Reset sort
@@ -187,30 +150,23 @@ export default function TradeTable({
               <th className="px-4 py-3 text-right label-xs">Target</th>
               <th className="px-4 py-3 text-center label-xs">R/R</th>
               {showPLCol && (
-                <SortTh
-                  label="P/L"
-                  sortKey="pl"
-                  currentSortKey={sortKey}
-                  currentSortDir={sortDir}
-                  onSort={handleSort}
-                  className="text-right"
-                />
+                <th className="px-4 py-3 text-right label-xs">P/L</th>
               )}
               <SortTh
                 label="Status"
                 sortKey="status"
                 currentSortKey={sortKey}
                 currentSortDir={sortDir}
-                onSort={handleSort}
+                onSort={onSort}
                 className="text-left"
               />
               <th className="px-4 py-3 text-left label-xs">Setup</th>
               <SortTh
                 label="Date"
-                sortKey="date"
+                sortKey="createdAt"
                 currentSortKey={sortKey}
                 currentSortDir={sortDir}
-                onSort={handleSort}
+                onSort={onSort}
                 className="text-left"
               />
             </tr>

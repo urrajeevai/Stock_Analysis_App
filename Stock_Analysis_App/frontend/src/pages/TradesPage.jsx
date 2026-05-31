@@ -11,13 +11,31 @@ export default function TradesPage() {
   const navigate = useNavigate()
   const [page, setPage] = useState(0)
   const [filters, setFilters] = useState({})
+  const [sort, setSort] = useState('createdAt')
+  const [sortDir, setSortDir] = useState('desc')
 
   const { trades, loading, error, pagination } = useTrades({
-    ...filters, page, size: PAGE_SIZE,
+    ...filters, page, size: PAGE_SIZE, sort, sortDir,
   })
 
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters)
+    setPage(0)
+  }
+
+  const handleSort = (key) => {
+    if (sort === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSort(key)
+      setSortDir('desc')
+    }
+    setPage(0)
+  }
+
+  const handleResetSort = () => {
+    setSort('createdAt')
+    setSortDir('desc')
     setPage(0)
   }
 
@@ -39,6 +57,10 @@ export default function TradesPage() {
         onFilterChange={handleFilterChange}
         pagination={pagination}
         onPageChange={setPage}
+        sortKey={sort}
+        sortDir={sortDir}
+        onSort={handleSort}
+        onResetSort={handleResetSort}
       />
     </div>
   )

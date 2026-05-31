@@ -9,26 +9,32 @@ export function useAnalysis(params = {}) {
     page: 0, totalPages: 0, totalElements: 0, pageSize: 20,
   })
 
-  const paramsKey = JSON.stringify(params)
+  const { outcome, ticker, page = 0, size, sort, sortDir } = params
+
+  // Convert camelCase sort keys to the snake_case keys the analysis controller expects
+  const SORT_KEY_MAP = {
+    analysisDate: 'analysis_date',
+    rrRatio:      'rr_ratio',
+    outcome:      'outcome',
+    createdAt:    'created_at',
+  }
 
   const fetch = useCallback(async () => {
     setLoading(true)
     try {
-      // Map internal 0-based page to 1-based API page; rename size→page_size
-      const { page = 0, size, ...rest } = params
-      const apiParams = {
-        ...rest,
-        page: page + 1,
-        ...(size != null && { page_size: size }),
-      }
+      const apiParams = { page: page + 1 }
+      if (size != null) apiParams.page_size = size
+      if (outcome)  apiParams.outcome  = outcome
+      if (ticker)   apiParams.ticker   = ticker
+      if (sort)     apiParams.sort_by  = SORT_KEY_MAP[sort] ?? sort
+      if (sortDir)  apiParams.sort_order = sortDir
+
       const res = await analysisService.listAnalyses(apiParams)
       const d = res.data
       if (Array.isArray(d)) {
         setAnalyses(d)
         setPagination({ page: 0, totalPages: 1, totalElements: d.length, pageSize: d.length || 20 })
       } else {
-        // Spring Boot 3.1+ with VIA_DTO serialises pagination under d.page;
-        // older/flat format has the fields at the top level — support both.
         const meta = (d.page && typeof d.page === 'object') ? d.page : d
         setAnalyses(d.content ?? [])
         setPagination({
@@ -44,7 +50,7 @@ export function useAnalysis(params = {}) {
     } finally {
       setLoading(false)
     }
-  }, [paramsKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [outcome, ticker, page, size, sort, sortDir])
 
   useEffect(() => { fetch() }, [fetch])
 
