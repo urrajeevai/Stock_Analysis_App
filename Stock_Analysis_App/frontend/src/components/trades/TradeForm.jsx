@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { calculateRR, getRRColor } from '../../utils/rrCalculator.js'
+import { formatCurrency } from '../../utils/formatters.js'
 import Input from '../ui/Input.jsx'
 import Select from '../ui/Select.jsx'
 import Button from '../ui/Button.jsx'
@@ -23,8 +24,13 @@ export default function TradeForm({ onSubmit, onCancel, defaultValues = {}, mode
     }
   })
 
-  const [direction, entryPrice, stopLoss, targetPrice] = watch(['direction', 'entryPrice', 'stopLoss', 'targetPrice'])
+  const [direction, entryPrice, stopLoss, targetPrice, quantity] = watch([
+    'direction', 'entryPrice', 'stopLoss', 'targetPrice', 'quantity',
+  ])
   const rrResult = calculateRR({ direction, entryPrice, stopLoss, target: targetPrice })
+  const totalValue = !isNaN(entryPrice) && entryPrice > 0 && !isNaN(quantity) && quantity > 0
+    ? parseFloat(entryPrice) * parseFloat(quantity)
+    : null
 
   const handleStockSelect = (sel) => {
     if (sel) {
@@ -99,18 +105,34 @@ export default function TradeForm({ onSubmit, onCancel, defaultValues = {}, mode
         />
       </div>
 
-      <Input
-        label="Quantity"
-        type="number"
-        step="1"
-        placeholder="1"
-        error={errors.quantity?.message}
-        {...register('quantity', { valueAsNumber: true, min: { value: 0.0001, message: 'Must be positive' } })}
-      />
+      {/* No of Shares + Setup Type */}
+      <div className="grid grid-cols-2 gap-4">
+        <Input
+          label="No of Shares"
+          type="number"
+          step="1"
+          placeholder="100"
+          error={errors.quantity?.message}
+          {...register('quantity', { valueAsNumber: true, min: { value: 0.0001, message: 'Must be positive' } })}
+        />
+        <Input
+          label="Setup Type"
+          placeholder="BREAKOUT, PULLBACK, REVERSAL…"
+          {...register('setupType')}
+        />
+      </div>
 
-      {/* Live R/R display */}
+      {/* Total Value pill — shown when shares+entry filled but prices not yet entered */}
+      {!rrResult && totalValue != null && (
+        <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-2.5 flex items-center gap-3">
+          <p className="label-xs">Total Value</p>
+          <p className="text-sm font-semibold text-slate-700 font-data">{formatCurrency(totalValue)}</p>
+        </div>
+      )}
+
+      {/* Full R/R + Total Value box — shown once all three prices are filled */}
       {rrResult && (
-        <div className="rounded-xl bg-slate-50 border border-slate-100 p-4 grid grid-cols-3 gap-4 text-center">
+        <div className="rounded-xl bg-slate-50 border border-slate-100 p-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
           <div>
             <p className="label-xs mb-1.5">Risk</p>
             <p className="text-sm font-semibold text-red-500 font-data">
@@ -131,14 +153,14 @@ export default function TradeForm({ onSubmit, onCancel, defaultValues = {}, mode
               {rrResult.rrRatio}:1
             </p>
           </div>
+          <div>
+            <p className="label-xs mb-1.5">Total Value</p>
+            <p className="text-sm font-semibold text-slate-700 font-data">
+              {totalValue != null ? formatCurrency(totalValue) : <span className="text-slate-300">—</span>}
+            </p>
+          </div>
         </div>
       )}
-
-      <Input
-        label="Setup Type"
-        placeholder="BREAKOUT, PULLBACK, REVERSAL…"
-        {...register('setupType')}
-      />
 
       <div className="flex flex-col gap-1.5">
         <label className="text-sm font-medium text-slate-700 leading-none">Notes</label>

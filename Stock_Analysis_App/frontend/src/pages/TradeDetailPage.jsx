@@ -289,6 +289,20 @@ export default function TradeDetailPage() {
             value={originalRR ? `${originalRR.rrRatio}R` : '—'}
             valueClass={getRRColor(originalRR?.rrRatio)}
           />
+          {trade.quantity != null && (
+            <DetailItem
+              label="No of Shares"
+              value={parseFloat(trade.quantity).toLocaleString('en-IN')}
+              valueClass="text-slate-700"
+            />
+          )}
+          {trade.totalValue != null && (
+            <DetailItem
+              label="Total Value"
+              value={formatCurrency(trade.totalValue)}
+              valueClass="text-slate-700"
+            />
+          )}
           {trade.actualExitPrice != null && (
             <DetailItem label="Exit Price" value={formatCurrency(trade.actualExitPrice)} />
           )}

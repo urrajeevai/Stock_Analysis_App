@@ -53,12 +53,12 @@ function SortTh({ label, sortKey, currentSortKey, currentSortDir, onSort, classN
   )
 }
 
-function SkeletonRow() {
+function SkeletonRow({ cols }) {
   return (
     <tr>
-      {Array.from({ length: 10 }).map((_, i) => (
+      {Array.from({ length: cols }).map((_, i) => (
         <td key={i} className="px-4 py-3.5">
-          <div className="skeleton h-3.5" style={{ width: ['60%', '45%', '55%', '50%', '50%', '35%', '55%', '65%', '60%', '50%'][i] }} />
+          <div className="skeleton h-3.5" style={{ width: `${45 + (i * 11) % 35}%` }} />
         </td>
       ))}
     </tr>
@@ -85,7 +85,8 @@ export default function TradeTable({
   const hasClosed = trades.some(t => t.status === 'CLOSED')
   const showPLCol = showPL || hasClosed
 
-  const displayTrades = trades
+  // Ticker, Dir., Entry, SL, Target, R/R, Shares, Total Val., [P/L], Status, Setup, Date
+  const colCount = showPLCol ? 12 : 11
 
   return (
     <div className="card overflow-hidden">
@@ -149,6 +150,8 @@ export default function TradeTable({
               <th className="px-4 py-3 text-right label-xs">Stop Loss</th>
               <th className="px-4 py-3 text-right label-xs">Target</th>
               <th className="px-4 py-3 text-center label-xs">R/R</th>
+              <th className="px-4 py-3 text-right label-xs">Shares</th>
+              <th className="px-4 py-3 text-right label-xs">Total Val.</th>
               {showPLCol && (
                 <th className="px-4 py-3 text-right label-xs">P/L</th>
               )}
@@ -173,10 +176,10 @@ export default function TradeTable({
           </thead>
           <tbody className="divide-y divide-slate-50">
             {loading ? (
-              Array.from({ length: 4 }).map((_, i) => <SkeletonRow key={i} />)
-            ) : displayTrades.length === 0 ? (
+              Array.from({ length: 4 }).map((_, i) => <SkeletonRow key={i} cols={colCount} />)
+            ) : trades.length === 0 ? (
               <tr>
-                <td colSpan={showPLCol ? 10 : 9}>
+                <td colSpan={colCount}>
                   <EmptyState
                     icon="trade"
                     title="No trades found"
@@ -192,7 +195,7 @@ export default function TradeTable({
                 </td>
               </tr>
             ) : (
-              displayTrades.map(trade => {
+              trades.map(trade => {
                 const rrResult = calculateRR({
                   direction: trade.direction,
                   entryPrice: trade.entryPrice,
@@ -229,6 +232,20 @@ export default function TradeTable({
                     <td className="px-4 py-3.5 text-center">
                       <span className={`text-sm font-semibold font-data ${getRRColor(rrResult?.rrRatio)}`}>
                         {rrResult ? `${rrResult.rrRatio}R` : '—'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5 text-right">
+                      <span className="text-sm text-slate-600 font-data">
+                        {trade.quantity != null
+                          ? parseFloat(trade.quantity).toLocaleString('en-IN')
+                          : <span className="text-slate-300">—</span>}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5 text-right">
+                      <span className="text-sm text-slate-700 font-data">
+                        {trade.totalValue != null
+                          ? formatCurrency(trade.totalValue)
+                          : <span className="text-slate-300">—</span>}
                       </span>
                     </td>
                     {showPLCol && (
