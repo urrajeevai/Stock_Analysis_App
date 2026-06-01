@@ -379,8 +379,12 @@ public class TradeService {
         return diff.multiply(qty).setScale(2, RoundingMode.HALF_UP);
     }
 
-    private BigDecimal computePLPercent(Trade trade) {
-        BigDecimal pl = computePL(trade);
+    private BigDecimal computeTotalValue(Trade trade) {
+        if (trade.getEntryPrice() == null || trade.getQuantity() == null) return null;
+        return trade.getEntryPrice().multiply(trade.getQuantity()).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal computePLPercent(Trade trade, BigDecimal pl) {
         if (pl == null || trade.getEntryPrice() == null || trade.getEntryPrice().compareTo(BigDecimal.ZERO) == 0) return null;
         BigDecimal qty = trade.getQuantity() != null ? trade.getQuantity() : BigDecimal.ONE;
         BigDecimal investment = trade.getEntryPrice().multiply(qty);
@@ -417,6 +421,7 @@ public class TradeService {
                 .map(TradeTrail::getNewTarget).filter(Objects::nonNull).findFirst()
                 .orElse(trade.getTargetPrice());
 
+        BigDecimal pl = computePL(trade);
         return new TradeResponse(
                 trade.getId(),
                 trade.getUserId(),
@@ -438,8 +443,9 @@ public class TradeService {
                 activeSL,
                 activeTarget,
                 trade.getQuantity(),
-                computePL(trade),
-                computePLPercent(trade),
+                computeTotalValue(trade),
+                pl,
+                computePLPercent(trade, pl),
                 computeHoldingDays(trade)
         );
     }

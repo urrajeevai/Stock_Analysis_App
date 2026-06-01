@@ -25,6 +25,7 @@ public record TradeResponse(
         BigDecimal activeStopLoss,
         BigDecimal activeTarget,
         BigDecimal quantity,
+        BigDecimal totalValue,
         BigDecimal plAmount,
         BigDecimal plPercent,
         Long holdingDays
